@@ -30,6 +30,9 @@ export default class Org extends SfdxCommand {
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
   protected static requiresProject = false;
 
+  protected replacedItems = 0;
+  protected replacedValues = [];
+
   public async run(): Promise<AnyJson> {
     const replace = require('replace-in-file');
     const fs = require('fs');
@@ -41,8 +44,9 @@ export default class Org extends SfdxCommand {
         .pipe(csv())
         .on('data', (data) => dictionary.push(data))
         .on('end', () => {
-          this.ux.log(dictionary.length.toString());
+          this.ux.log(dictionary.length.toString() + ' - entries found in dictionary');
           this.translate(replace, dictionary, this.flags.inputdir);
+          this.ux.log(this.replacedItems + ' - entries replaced');
       });
 
 
@@ -60,21 +64,22 @@ export default class Org extends SfdxCommand {
 */
 
     // Return an object to be displayed with --json
-    return {  };
+    return {"replaced" : this.replacedValues};
   }
 
   public translate(replace, dictionary, inputdir){
     for(let value of dictionary){
-      let regex = new RegExp(value.Name, 'g');
+      let regex = new RegExp('<value>'+value.Name+'<', 'g');
       let options = {
         encoding: 'utf8',
         files: inputdir,
         from: regex,
-        to: value.Translation,
+        to: '<value>'+value.Translation+'<',
       };
       let results = replace.sync(options);
       if(results[0].hasChanged){
-        this.ux.log(results);
+        this.replacedItems++;
+        this.replacedValues.push(value.Name);
       }
 
     }
