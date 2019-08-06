@@ -18,7 +18,10 @@ export default class Org extends SfdxCommand {
 
   protected static flagsConfig = {
     inputdir: flags.directory({ char: 'i', description: 'Input directory' }),
-    dictionary: flags.directory({char: 'd', description: 'Dictionary File'})
+    dictionary: flags.directory({char: 'd', description: 'Dictionary File'}),
+    prefix: flags.directory({char: 'p', description: 'Translated word prefix'}),
+    suffix: flags.directory({char: 's', description: 'Translated word suffix'}),
+    includeoverlay: flags.directory({char: 'o', description: 'Should replaced value keep overlay'})
   };
 
   // Comment this out if your command does not require an org username
@@ -69,12 +72,13 @@ export default class Org extends SfdxCommand {
 
   public translate(replace, dictionary, inputdir){
     for(let value of dictionary){
-      let regex = new RegExp('<value>'+value.Name+'<', 'g');
+      let regex = new RegExp(this.flags.prefix + value.Name + this.flags.suffix, 'g');
+      let toValue = this.flags.includeoverlay === true ? this.flags.prefix + value.Translation + this.flags.suffix : value.Translation;
       let options = {
         encoding: 'utf8',
         files: inputdir,
         from: regex,
-        to: '<value>'+value.Translation+'<',
+        to: toValue,
       };
       let results = replace.sync(options);
       if(results[0].hasChanged){
